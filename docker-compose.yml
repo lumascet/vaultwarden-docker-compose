@@ -3,12 +3,13 @@ services:
     image: vaultwarden/server:latest
     restart: unless-stopped
     volumes:
-     - ./data:/data:rw
+     - data:/data:rw
     environment:
      - ADMIN_TOKEN=${ADMIN_TOKEN}
      - WEBSOCKET_ENABLED=true
      - SIGNUPS_ALLOWED=false
      - DOMAIN=${DOMAIN}
+     - EXPERIMENTAL_CLIENT_FEATURE_FLAGS=ssh-key-vault-item,ssh-agent
     networks:
       - default
       - netstackbridge
@@ -20,6 +21,7 @@ services:
       RCLONE_REMOTE_NAME: 'RcloneBackup'
       RCLONE_REMOTE_DIR: ${RCLONE_REMOTE_DIR}
       CRON: '0 5 * * WED'
+      #CRON: '* * * * *'
       ZIP_ENABLE: 'TRUE'
       ZIP_PASSWORD: ${RCLONE_BACKUP_ENCRYPTION_PASSWORD}
       ZIP_TYPE: '7z'
@@ -27,19 +29,24 @@ services:
       BACKUP_KEEP_DAYS: 30
       TIMEZONE: 'Europe/Vienna'
       MAIL_SMTP_ENABLE: 'TRUE'
-      MAIL_SMTP_VARIABLES: |
-        -S v15-compat
-        -S smtp-use-starttls
-        -S smtp-auth=login
-        -S mta=smtp://${SMTP_SENDER_LOGIN}:${SMTP_SENDER_PASSWORD}@${SMTP_SERVER}
-        -S from=${SMTP_SENDER_EMAIL}
+      MAIL_SMTP_VARIABLES: >-
+        -S 'v15-compat'
+        -S 'mta=smtp://${SMTP_SERVER}'
+        -S 'smtp-use-starttls'
+        -S 'smtp-auth=login'
+        -S 'user=${SMTP_SENDER_EMAIL}'
+        -S 'password=${SMTP_SENDER_PASSWORD}'
+        -S 'from=Vaultwarden Backup <$SMTP_SENDER_EMAIL>'
       MAIL_TO: ${SMTP_RECEIVER_EMAIL}
     volumes:
       - ~/.config/rclone:/config/rclone
-      - ./data:/bitwarden/data:r
+      - data:/bitwarden/data:r
 
 networks:
   default:
   netstackbridge:
     external: true
     name: netstack_bridge
+
+volumes:
+  data:
